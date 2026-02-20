@@ -1,0 +1,337 @@
+---
+title: "REPORT: DHS Vaccination Data"
+author: "Author: Abraham Adokwei"
+date: "`r format(Sys.Date(), '%b %d, %Y')`"
+params:
+  data: "default"
+  data1: "default"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: true
+    theme: united
+    highlight: tango
+    fig_width: 12
+    fig_height: 7
+    fig_caption: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+knitr::opts_knit$set(eval.after = "fig.cap")
+```
+
+```{r}
+me <- new.env(parent = baseenv())
+```
+
+
+# Report Objective
+- To assess vaccination data used in the analysis of measles vaccination timing. 
+
+
+
+# Data Properties
+- `r params$data[,"SurveyType"]` dataset report from `r params$data[,"CountryName"]` (`r params$data[,"DHS_CountryCode"]`) published in `r params$data[,"SurveyYear"]` under the name `r params$data[,"SurveyId"]` and `r params$data[,"FileType"]`. This dataset is based on the Phase `r strex::str_first_number(unlist(stringr::str_split(params$data[,"FileName"],pattern = "")))[5]` `r params$data[,"SurveyType"]` Survey. 
+
+
+
+
+- The children involved in this report are between the ages of `r range(params$data1[,"age_1"],na.rm=T)[1]` and `r range(params$data1[,"age_1"],na.rm=T)[2]` months, reflecting children whose guardians were asked about their child's vaccination status. 
+$$\\$$
+<!-- A child with a vaccination card was considered to be uncensored at the time of the vaccination (we assume that vaccinations recorded on cards only represent routine vaccination) -->
+
+Vaccination (censor) status defined:
+
+
+
+- A child with a documented date of receiving a measles containing vaccine (MCV) on their vaccination card was considered **uncensored** at the time of the survey. When a guardian recalled that their child had received vaccination but a vaccination card was unavailable or the card date was impossible, the child was considered to be **left censored** at the time of DHS survey; a child reported as unvaccinated at the time of DHS survey was considered to be **right censored** . These were coded as **right censored=0, uncensored=1, left censored=2.**
+$$\\$$
+
+
+```{r}
+drop_age1 <- params$data1 |> tidyr::drop_na(age_1)
+
+numberless <- drop_age1 |>
+                  dplyr::mutate(
+                    mcv_na = ifelse(is.na(age_1_mcv), -1,age_1_mcv)
+                ) |> 
+                  dplyr::filter(age_1<mcv_na) #fix for age1<=age1_mcv
+
+
+drop_status <- drop_age1 |> tidyr::drop_na(Status)|>
+                  dplyr::mutate(
+                    mcv_na = ifelse(is.na(age_1_mcv), -1,age_1_mcv)
+                ) |> 
+                  dplyr::filter(age_1>=mcv_na) #fix for age1<=age1_mcv
+
+vaccine_age <- drop_status |> dplyr::filter(followup < vax_age)
+
+drop_status <- drop_status |> dplyr::filter(followup >= vax_age)
+
+    
+```
+
+
+# Description of Data 
+At the time of the `r params$data[,"SurveyType"]` Survey, `r dim(params$data1)[1]` children were surveyed. Of this number, `r sum(is.na(params$data1[,"age_1"]))` had an incomplete or impossible date of birth. This leaves `r nrow(drop_age1)` for analysis. 
+
+<!-- Similarly, `r sum(is.na(params$data1[,"age_1_mcv"]))` children, reflecting `r round(sum(is.na(params$data1[,"age_1_mcv"]))/nrow(params$data1)*100,2)`% of the total number of children surveyed did not know their age at the time of their first vaccination.  -->
+$$\\$$
+
+# Descriptive Plots
+```{r fig.align='center', echo=FALSE, fig.cap=paste("Figure 1:","Distribution of children's age at the time of the survey","(N =", dim(drop_age1)[1],")")}
+drop_age1 |> 
+  ggplot2::ggplot(ggplot2::aes(x=age_1))+ggplot2::geom_histogram(fill="dodgerblue4")+
+  ggplot2::theme_bw()+
+  ggplot2::xlab("age (months)")+ggplot2::ylab("Number of children")+
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 20), 
+        axis.title = ggplot2::element_text(size = 24))
+```
+
+
+The mean age of children at the time of the survey was `r round(mean(drop_age1$age_1, na.rm=T))` (months) with a standard deviation of `r round(stats::sd(drop_age1$age_1, na.rm=T))`. About 25% of the children were below `r stats::quantile(drop_age1$age_1, 0.25)` (months), 50% were below `r stats::quantile(drop_age1$age_1, 0.5)`, and 25% were above `r stats::quantile(drop_age1$age_1, 0.75)` (months). 
+
+$$\\[0.5in]$$
+
+ `r sum(is.na(drop_age1[,"Status"]))` children, reflecting `r round(sum(is.na(drop_age1[,"Status"]))/nrow(drop_age1)*100,2)`% were missing vaccination status. `r nrow(numberless)` children, reflecting `r round(nrow(numberless)/nrow(drop_age1)*100,2)`% had impossible date of vaccination. In addition, `r nrow(vaccine_age)` children were excluded from the analysis because they were below the recommended vaccination age set by user (`r vax_age` months). This leaves a total of `r dim(drop_age1)[1] - sum(is.na(drop_age1[,"Status"]))-nrow(vaccine_age)-nrow(numberless)` in the data for analysis. 
+$$\\[0.5in]$$
+
+
+```{r fig.align='center', echo=FALSE, fig.cap= paste("Figure 2:","Distribution by censor status", "(N =", dim(drop_status)[1],")")}
+statusprop <- drop_status |> dplyr::count(Status) |> dplyr::mutate(prop = prop.table(n))
+
+
+
+statusprop |> ggplot2::ggplot(ggplot2::aes(x=factor(Status),
+                                           y=prop, 
+                                           fill=factor(Status),
+                                           label = scales::percent(prop)))+
+  ggplot2::geom_bar(stat = "identity")+
+  ggplot2::geom_text(
+            position = ggplot2::position_dodge(width = 0.9),
+            vjust = 1.5, 
+            size=14)+
+  ggplot2::scale_fill_manual(values = c("dodgerblue4",
+                                            "darkolivegreen4",
+                                            "darkorchid3"),
+                                            name="censor status", 
+                    labels=c("right", "uncensored", "left"))+
+  ggplot2::labs(x="censor status of a child",
+       y="Percent of children",
+       color="Season:"
+  )+
+  ggplot2::theme(legend.title = ggplot2::element_text(color = "chocolate",size = 16, face = "bold"),
+          legend.text = ggplot2::element_text(size=14))+
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 20), 
+        axis.title = ggplot2::element_text(size = 24))+ ggplot2::scale_y_continuous(labels = scales::percent)+
+    ggplot2::theme_bw()
+
+
+```
+
+
+Based on our defined censor status above,  `r round(statusprop[1,2],1)` (`r round(statusprop[1,3]*100,1)`%) of the children had not yet received a MCV at the time of survey; `r round(statusprop[2,2],1)` (`r round(statusprop[2,3]*100,1)`%) of them were vaccinated and had documented date of their vaccination; `r round(statusprop[3,2],1)` (`r round(statusprop[3,3]*100,1)`%) of the children were vaccinated prior to the survey at an unknown date. 
+$$\\[0.5in]$$
+
+
+
+```{r fig.align='center',fig.cap= paste("Figure 3:", "Age-specific distribution of censor status","(N=",dim(drop_status)[1],")")}
+drop_status |>
+  ggplot2::ggplot(ggplot2::aes(x=factor(age_1), fill=factor(Status)))+
+  ggplot2::geom_bar(position = "fill")+ggplot2::theme_bw()+ggplot2::scale_fill_manual(values =c("dodgerblue4","darkolivegreen4","darkorchid3"),name="censor status", labels=c("right", "uncensored", "left"))+ggplot2::labs(
+    x="age (months)",
+    y="Proportion of children",
+    color="Season:"
+  )+ggplot2::theme(legend.title = ggplot2::element_text(color = "chocolate",size = 16, face = "bold"),legend.text = ggplot2::element_text(size=14))+
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 20), 
+        axis.title = ggplot2::element_text(size = 24))+
+  ggplot2::scale_x_discrete(breaks = seq(0,70, by=5))
+
+```
+
+$$\\[0.5in]$$
+
+
+```{r fig.align='center',fig.cap=paste("Figure 4:", "Age-specific distribution of censor status","(N=",dim(drop_status)[1],")")}
+drop_status |>
+  ggplot2::ggplot(ggplot2::aes(x=factor(age_1), fill=factor(Status)))+
+  ggplot2::geom_bar(position = "identity")+ggplot2::theme_bw()+ggplot2::scale_fill_manual(values =c("dodgerblue4","darkolivegreen4","darkorchid3"),name="censor status", labels=c("right", "uncensored", "left"))+ggplot2::labs(
+    x="age (months)",
+    y="Number of children",
+    color="Season:"
+  )+ggplot2::theme(legend.title = ggplot2::element_text(color = "chocolate",size = 16, face = "bold"),legend.text = ggplot2::element_text(size=14))+
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 20), 
+        axis.title = ggplot2::element_text(size = 24))+
+  ggplot2::scale_x_discrete(breaks = seq(0,70, by=5))
+
+```
+
+$$\\[0.5in]$$
+
+```{r}
+drop_status_uncensored = drop_status |> dplyr::filter(Status==1)
+```
+
+
+```{r fig.align='center', echo=FALSE, fig.cap=paste("Figure 5:","Distribution of children's vaccination age (uncensored)","(N =", dim(drop_status_uncensored)[1],")")}
+drop_status_uncensored |> 
+  ggplot2::ggplot(ggplot2::aes(x=followup))+ggplot2::geom_histogram(fill="dodgerblue4")+
+  ggplot2::theme_bw()+
+  ggplot2::xlab("age (months)")+ggplot2::ylab("Number of children")+
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 20), 
+        axis.title = ggplot2::element_text(size = 24))
+```
+
+
+The mean age of children at the time of vaccination was `r round(mean(drop_status_uncensored$followup, na.rm=T))` (months) with a standard deviation of `r round(stats::sd(drop_status_uncensored$followup, na.rm=T))`. About 25% of the children were below `r stats::quantile(drop_status_uncensored$followup, 0.25)` (months), 50% were below `r stats::quantile(drop_status_uncensored$followup, 0.5)`, and 25% were above `r stats::quantile(drop_status_uncensored$followup, 0.75)` (months). 
+
+$$\\[0.5in]$$
+
+```{r fig.align='center',fig.cap=paste("Figure 6:","Distribution of vaccination date","(N = ",drop_status |> dplyr::filter(Status==1) |> nrow(),")")}
+
+df1_date <- drop_status_uncensored |> dplyr::count(datedate)
+df1_date <- df1_date |> 
+  dplyr::mutate(mt = lubridate::month(datedate),
+         yr = lubridate::year(datedate))
+df1_date <- df1_date |> stats::aggregate(n~mt+yr, FUN = sum)
+df1_date <- df1_date |> dplyr::filter(yr <= strex::str_first_number(params$data[,"SurveyYear"]))
+
+df1_date <-df1_date |> dplyr::mutate(
+  ddate = lubridate::ym(paste(yr, mt, sep = "-")),
+  scaled =  (n-mean(n))/stats::sd(n)
+)
+
+df1_date |> ggplot2::ggplot(ggplot2::aes(x=ddate, y=n))+ggplot2::geom_bar(stat = "identity", width = 20)+
+   ggplot2::geom_bar(data = dplyr::filter(df1_date,scaled>2), fill="red", stat = "identity", width = 20)+
+  ggplot2::geom_bar(data = dplyr::filter(df1_date,scaled>3), fill="orange", stat = "identity", width = 20)+
+  ggplot2::xlab("Date of Vaccination") + ggplot2::ylab("Number of children vaccinated")+ 
+  ggplot2::theme_bw()+ ggplot2::scale_x_date(date_labels = "%m-%Y", date_breaks = '6 months', date_minor_breaks = "month")+
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 20, angle = 45, vjust = 0.5, hjust = 1), 
+        axis.title = ggplot2::element_text(size = 24))
+```
+
+```{r}
+vacperiod <- format(range(df1_date$ddate),'%b, %Y')
+tmonths <- lubridate::as.period(lubridate::interval(lubridate::my(vacperiod[1]), lubridate::my(vacperiod[2])), 'months')
+tmonths <- strex::str_nth_number(paste(tmonths),1)
+```
+
+
+ $\\[5pt]$
+
+```{r fig.align='center',fig.cap=paste("Figure 7:","Distribution of vaccination date","(N = ",drop_status |> dplyr::filter(Status==1) |> nrow(),")")}
+#params$data1|>dplyr::filter(Status==1) |> count(datedate)
+df1_births <- drop_status_uncensored |> dplyr::count(datedate)
+   df1_births <- df1_births |> 
+     dplyr::mutate(mt = lubridate::month(datedate),
+            yr = lubridate::year(datedate))
+  df1_births <- df1_births |> dplyr::filter(yr <=strex::str_first_number(cdata[,"SurveyYear"]))#params$data
+
+   
+time <- unique(df1_births$yr)
+   #country.iso2 <- cdata[,"DHS_CountryCode"]#params$data
+   uncode <- countrycode::countrycode(country.iso2, origin = "iso2c", destination = "un")
+   utils::data("misc1dt", package = "wpp2022", envir = me)
+   utils::data("miscproj1dt", package = "wpp2022", envir = me)
+   
+   time1=time; time1=time1[time1<=2021]
+   time2=time; time2=time2[time2>2021]
+   
+   births1 <- me$misc1dt |> 
+     dplyr::filter(country_code==uncode) |> 
+     dplyr::select(year, births) |>
+     dplyr::filter(year %in% time1) |>
+     dplyr::pull(births)*1000
+   
+   births2 <- me$miscproj1dt |> 
+     dplyr::filter(country_code==uncode) |> 
+     dplyr::select(year, births) |>
+     dplyr::filter(year %in% time2) |>
+     dplyr::pull(births)*1000
+   
+   births = c(births1,births2)
+
+   df1_births <- df1_births |> stats::aggregate(n~mt+yr, FUN = sum)
+   df1_births <- df1_births |> dplyr::arrange(yr)
+   rep_num <- df1_births |> dplyr::count(yr)
+   rep_num <- rep_num[,2]
+   df1_births <- df1_births |> dplyr::mutate(
+     bbirths = rep(births, times = rep_num),
+     bbirths = bbirths/12,
+     props = n/bbirths,
+       ddate = lubridate::ym(paste(yr, mt, sep = "-")),
+       scaled =  (props-mean(props))/stats::sd(props)
+   )
+   
+df1_births |> ggplot2::ggplot(ggplot2::aes(x=ddate, y=props))+ggplot2::geom_bar(stat = "identity", width = 20)+
+   ggplot2::geom_bar(data = dplyr::filter(df1_births,scaled>2), fill="red", stat = "identity", width = 20)+
+  ggplot2::geom_bar(data = dplyr::filter(df1_births,scaled>3), fill="orange", stat = "identity", width = 20)+
+  ggplot2::xlab("Date of Vaccination") + ggplot2::ylab("Proportion of birth cohort vaccinated")+ 
+  ggplot2::theme_bw()+ ggplot2::scale_x_date(date_labels = "%m-%Y", date_breaks = 'year')+
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 20), 
+        axis.title = ggplot2::element_text(size = 24))
+
+```
+
+The period of vaccination for children with proof of vaccination span `r vacperiod[1]` to `r vacperiod[2]` totaling `r tmonths+1` months. On an average, `r round(mean(df1_date$n))` children were vaccinated in a given month with a standard deviation of `r round(stats::sd(df1_date$n),2)`. There's been evidence of increased vaccination efforts due to Supplemental Immunization Activities (SIAs) within certain countries. We attempt to identity such efforts by adopting an outlier detection technique. In *Figure 6*, red colored bars represent vaccination counts beyond 2 standard deviations above the mean ($\ge$ `r round(mean(df1_date$n)+2*stats::sd(df1_date$n),2)`). Similarly, orange bars represent vaccination counts beyond 3 standard deviations above the mean ($\ge$ `r round(mean(df1_date$n)+3*stats::sd(df1_date$n),2)`). As indicated above, `r round(length(which(df1_date$scaled>2))/(tmonths+1)*100,2)`% of the months were above 2 standard deviations and `r round(length(which(df1_date$scaled>3))/(tmonths+1)*100,2)`% were above 3 standard deviations. 
+
+
+Similar to *Figure 6*, in *Figure 7*, red colored bars represent vaccination proportions beyond 2 standard deviations above the mean ($\ge$ `r mean(df1_births$props)+2*stats::sd(df1_births$props)`). Similarly, orange bars represent vaccination proportions beyond 3 standard deviations above the mean ($\ge$ `r mean(df1_births$props)+3*stats::sd(df1_births$props)`). We expect that the outliers in *Figure 6* should match those detected in *Figure 7*. 
+
+
+
+## Turnbull Estimates 
+```{r}
+  df1 = drop_status
+  df1 <- df1 |>
+    dplyr::mutate(
+      prop = ifelse(Status%in%c(1,2),1,0)
+    )
+  
+  kefit <- survival::survfit(survival::Surv(followup, followup, Status,                                                 type='interval') ~1,
+                                            data=df1, weight=wgt)
+  ## Crude Estimate -------------------------------------------------
+  
+  df1_cum <- df1 |> dplyr::arrange(followup)|>
+    dplyr::summarise(
+      vsum = sum(prop),
+      n=dplyr::n(),
+      propind = vsum/n,
+      .by = followup
+    )
+  
+  prop.time = df1_cum$followup
+  prop.vaccinated = df1_cum$propind
+  
+ #-------------------------------------------------------------- 
+  
+  cdf.list = list(time = kefit$time,surv.prob =kefit$surv, 
+                  surv.low =kefit$lower,
+                  surv.high = kefit$upper)
+
+  df1_range = range(df1$followup)
+  
+
+    cdf.low = kefit$lower
+    cdf.high = kefit$upper
+    
+    plot(cdf.list$time,1-cdf.list$surv.prob, type='s', col='red',ylim=c(0,1),
+       xlab = "Age (months)",
+      ylab = "Vaccination Coverage (%)") #turnbull cdf
+    graphics::axis(side = 1, at=seq(0,df1_range[[2]], by=5))
+    graphics::lines(prop.time, prop.vaccinated,type="b",pch=16,col='black')
+    graphics::lines(cdf.list$time, 1-cdf.low, type='s', col="blue", lty=2)
+    graphics::lines(cdf.list$time, 1-cdf.high, col="blue", type="s", lty=2)
+  
+
+
+```
+
+
+
+

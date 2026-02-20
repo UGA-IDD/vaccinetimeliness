@@ -1,0 +1,31 @@
+Package: vaccinetimeliness
+Title: Put your DHS data in a `Survival ready` format
+Version: 0.0.0.9000
+Authors@R: c( 
+    person("Abraham", "Adokwei", ,"abrahamaddo14@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0000-7044-2902")),
+    person("Amy", "Winter", ,"awinter@uga.edu", role = c("aut"))
+           )
+Description: `vaccinetimeliness` helps get your DHS data in a format that is appropriate for survival analysis.
+    Additionally, helper functions allow for easy modelling of survival data in the presense of doubly censored data (both left and right censoring).
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+Depends: 
+    R (>= 2.10)
+Imports: 
+    countrycode (>= 1.5.0),
+    dplyr (>= 1.1.4),
+    jalcal (>= 0.1.0),
+    lubridate (>= 1.9.3),
+    purrr (>= 1.0.2),
+    magrittr,
+    rdhs (>= 0.8.1),
+    rlang,
+    rmarkdown (>= 2.25),
+    stringr (>= 1.5.1),
+    utils (>= 4.3.2),
+    survival,
+    tidyr,
+    labelled
