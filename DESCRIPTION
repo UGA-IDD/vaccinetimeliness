@@ -11,7 +11,7 @@ Description: `vaccinetimeliness` helps get your DHS data in a format that is app
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Depends: 
     R (>= 2.10)
 Imports: 

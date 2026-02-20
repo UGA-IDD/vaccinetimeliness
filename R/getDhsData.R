@@ -15,7 +15,6 @@
 
 getDHSdata <- function(iso, survyear, vaccine, DHS_cred_email, DHS_cred_project,
                        vax_age = 0, assessment = FALSE) {
-  # set_rdhs_config(email = DHS_cred_email, project = DHS_cred_project)
 
   avv <- rdhs::dhs_datasets() # loads all available data]
 
