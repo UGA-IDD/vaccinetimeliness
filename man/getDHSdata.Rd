@@ -4,15 +4,7 @@
 \alias{getDHSdata}
 \title{Get your survival data ready}
 \usage{
-getDHSdata(
-  iso,
-  survyear,
-  vaccine,
-  DHS_cred_email,
-  DHS_cred_project,
-  vax_age = 0,
-  assessment = FALSE
-)
+getDHSdata(iso, survyear, vaccine, vax_age = 0, assessment = FALSE)
 }
 \arguments{
 \item{iso}{country specific iso code (eg. "GH")}
@@ -21,13 +13,13 @@ getDHSdata(
 
 \item{vaccine}{character, options: MCV1, MCV2}
 
-\item{DHS_cred_email}{character, provide the email used to register the DHS project}
-
-\item{DHS_cred_project}{character, provide the project name for the email provided}
-
 \item{vax_age}{integer, mininum vaccination age allowed}
 
 \item{assessment}{boolean, TRUE to print assessment report of the data}
+
+\item{DHS_cred_email}{character, provide the email used to register the DHS project}
+
+\item{DHS_cred_project}{character, provide the project name for the email provided}
 }
 \value{
 A nicely formatted dataframe for survival analysis
