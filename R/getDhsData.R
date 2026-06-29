@@ -13,8 +13,7 @@
 #'
 
 
-getDHSdata <- function(iso, survyear, vaccine, DHS_cred_email, DHS_cred_project,
-                       vax_age = 0, assessment = FALSE) {
+getDHSdata <- function(iso, survyear, vaccine, vax_age = 0, assessment = FALSE) {
 
   avv <- rdhs::dhs_datasets() # loads all available data]
 
