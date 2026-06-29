@@ -207,6 +207,7 @@ getDHSdata <- function(iso, survyear, vaccine, vax_age = 0, assessment = FALSE) 
     }
 
     df_select <- df_select |> dplyr::mutate(
+      wgt = v005 / 1000000, # weight variable
       age_1 = v008 - b3_01, # get age at survey
       age_1_mcv = age_1_mcv, # getting age at MCV
       Status = dplyr::case_when(
@@ -247,7 +248,7 @@ getDHSdata <- function(iso, survyear, vaccine, vax_age = 0, assessment = FALSE) 
     )
 
     df_final <- df_select |> dplyr::select(
-      v001, wgt, age_1, age_1_mcv, Status, datedate
+      wgt, age_1, age_1_mcv, Status, datedate
     )
 
     # remove individuals who are not asked about vaccination
