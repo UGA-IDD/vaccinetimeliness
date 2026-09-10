@@ -3,8 +3,6 @@
 #' @param iso country specific iso code (eg. "GH")
 #' @param survyear vector, year(s) of survey
 #' @param vaccine character, options: MCV1, MCV2
-#' @param DHS_cred_email character, provide the email used to register the DHS project
-#' @param DHS_cred_project character, provide the project name for the email provided
 #' @param vax_age integer, mininum vaccination age allowed
 #' @param assessment boolean, TRUE to print assessment report of the data
 #'
@@ -13,7 +11,7 @@
 #'
 
 
-getDHSdata <- function(iso, survyear, vaccine, vax_age = 0, assessment = FALSE) {
+getDHSdata <- function(iso, survyear, vaccine, vax_age = 3, assessment = FALSE) {
 
   avv <- rdhs::dhs_datasets() # loads all available data]
 
@@ -64,7 +62,7 @@ getDHSdata <- function(iso, survyear, vaccine, vax_age = 0, assessment = FALSE) 
     df_select <- df |> dplyr::select(
       v005, v008, b3_01, h9_1, h9y_1, h9m_1, h9d_1
     )
-    if (nrow(df_select) == 0) stop("No data on measles vaccination for chosen year")
+    if (sum(!is.na(df_select$h9_1)) == 0) stop("No data on measles vaccination for chosen year")
     # afghanistan modifications ---------------------------
     if (iso == "AF") {
       df_afg1 <- df_select |> dplyr::mutate(
@@ -167,7 +165,7 @@ getDHSdata <- function(iso, survyear, vaccine, vax_age = 0, assessment = FALSE) 
     df_select <- df |> dplyr::select(
       v005, v008, b3_01, h9a_1, h9ay_1, h9am_1, h9ad_1
     )
-    if (nrow(df_select) == 0) stop("No data on measles vaccination for chosen year")
+    if (sum(!is.na(df_select$h9a_1)) == 0) stop("No data on measles vaccination for chosen year")
     # afghanistan modifications ---------------------------
     if (iso == "AF") {
       df_afg1 <- df_select |> dplyr::mutate(
