@@ -51,9 +51,6 @@ getDHSdata <- function(iso, survyear, vaccine, vax_age = 0, assessment = FALSE) 
   if (nrow(cdata) == 0) {
     stop("No data for survey year")
   }
-  if (iso == "JO" & any(survyear) == 2009) stop("No data data on measles vaccination for chosen year")
-  if (iso == "UA" & any(survyear) == 2007) stop("No data data on measles vaccination for chosen year")
-  if (iso == "CO" & any(survyear) == 2015) stop("No data data on measles vaccination for chosen year")
 
   dwnload <- rdhs::get_datasets(cdata$FileName,
     download_option = "rds",
@@ -67,7 +64,7 @@ getDHSdata <- function(iso, survyear, vaccine, vax_age = 0, assessment = FALSE) 
     df_select <- df |> dplyr::select(
       v005, v008, b3_01, h9_1, h9y_1, h9m_1, h9d_1
     )
-
+    if (nrow(df_select) == 0) stop("No data on measles vaccination for chosen year")
     # afghanistan modifications ---------------------------
     if (iso == "AF") {
       df_afg1 <- df_select |> dplyr::mutate(
@@ -170,7 +167,7 @@ getDHSdata <- function(iso, survyear, vaccine, vax_age = 0, assessment = FALSE) 
     df_select <- df |> dplyr::select(
       v005, v008, b3_01, h9a_1, h9ay_1, h9am_1, h9ad_1
     )
-
+    if (nrow(df_select) == 0) stop("No data on measles vaccination for chosen year")
     # afghanistan modifications ---------------------------
     if (iso == "AF") {
       df_afg1 <- df_select |> dplyr::mutate(
